@@ -21,11 +21,11 @@ class CreateTripsTable extends Migration
             $table->text('date');
             $table->text('image');
             $table->text('description');
-            $table->text('guide');
+            $table->foreignId('guide')->constrained()->onDelete('cascade');
             $table->timestamps();
-            $table->text('price');
-            $table->text('seats');
-            $table->text('freeseats');
+            $table->smallInteger('price');
+            $table->smallInteger('seats');
+            $table->smallInteger('freeseats');
             $table->text('remark');
         });
     }
