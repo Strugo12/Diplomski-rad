@@ -12,6 +12,14 @@ class TripsController extends Controller
         if($trips=="[]"){
             return response(['message' => 'No trips available']);
         }
+        else if(auth()->user()->role=="guide"){
+            foreach($trips as $trip){
+                if($trip->guide==auth()->user()->id){
+                    $guide[]=$trip;
+                }
+            }
+            return response(['trips' => $guide]);
+        }
         else{
             return response(['trips' => $trips]);
         }
@@ -29,7 +37,7 @@ class TripsController extends Controller
             'title' => 'required|unique:trips',
             'destination' => 'required',
             'duration' => 'required',
-            'date'=> 'required',
+            'date'=> 'required|date',
             'guide'=> 'required',
             'image'=> 'required',
             'description'=> 'required|string',
@@ -54,6 +62,7 @@ class TripsController extends Controller
             'title' => $fields['title'],
             'destination' => $fields['destination'],
             'duration' => $fields['duration'],
+            'date' => $fields['date'],
             'guide' => $fields['guide'],
             'image' => $fields['image'],
             'description' => $fields['description'],
@@ -68,12 +77,61 @@ class TripsController extends Controller
 
     public function destroy(Trips $trip){
         $trip->delete();
-        return response([ 'message' => "Trip is deleted!"]);
+        return response([ 'message' => "Trip $trip->title is deleted!"]);
      }
 
     public function detail(Trips $trip){
+        if(auth()->user()->role=="guide"){
+            $passengers=$trip->seats-$trip->freeseats;
+            return response([ 'trip' => $trip, 'passengers'=> $passengers]);
+        }
+        else{
+            return response([ 'trip' => $trip]);
+        }
+    }
 
-        return response([ 'trip' => $trip]);
+    public function edit(Trips $trip, Request $request){
+        if(auth()->user()->role!="leader"){
+            return response([ 'message' => 'This can only be done by leaders']);
+        }
+        $fields = $request->validate([
+            'title' => 'required|unique:trips',
+            'destination' => 'required',
+            'duration' => 'required',
+            'date'=> 'required|date',
+            'guide'=> 'required',
+            'image'=> 'required',
+            'description'=> 'required|string',
+            'price'=> 'required|integer',
+            'seats'=> 'required|integer',
+            'remark'=> 'required|string',
+          ]);
+          $passengers=$trip->seats-$trip->freeseats;
+          if($passengers>$fields['seats']){
+            return response([ 'message' => "$passengers is occupied and your max number of seats is $request->seats"]);
+          }
+          $flag=0;
+            $users=User::all();
+            foreach($users as $user){
+                if($user->id==$fields['guide'] && $user->role=="guide"){
+                    $flag=1;
+                }
+            }
+            if($flag==0){
+                return response([ 'message' => "Wrong guide"]);
+            }
+          $trip->title=$fields['title'];
+          $trip->destination=$fields['destination'];
+          $trip->duration=$fields['duration'];
+          $trip->date=$fields['date'];
+          $trip->guide=$fields['guide'];
+          $trip->image=$fields['image'];
+          $trip->description=$fields['description'];
+          $trip->price=$fields['price'];
+          $trip->seats=$fields['seats'];
+          $trip->remark=$fields['remark'];
+          $trip->save();
+          return response([ 'message' => "Successfully changed $trip->title"]);
     }
 
 

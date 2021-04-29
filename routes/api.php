@@ -15,16 +15,17 @@ use App\Http\Controllers\ReservationController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::POST('/register', [AuthController::class, 'register']);
+Route::POST('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:api')->group(function (){
-    Route::get('/user', [AuthController::class, 'details']);
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/trips', [TripsController::class, 'index']);
-    Route::post('/addTrip', [TripsController::class, 'addTrip']);
-    Route::Get('/trips/{trip}', [TripsController::class, 'detail']);
+    Route::GET('/user', [AuthController::class, 'details']);
+    Route::POST('/logout', [AuthController::class, 'logout']);
+    Route::GET('/trips', [TripsController::class, 'index']);
+    Route::POST('/addTrip', [TripsController::class, 'addTrip']);
+    Route::GET('/trips/{trip}', [TripsController::class, 'detail']);
     Route::DELETE('/trips/{trip}/deleteTrip', [TripsController::class, 'destroy']);
     Route::POST('/trips/{trip}/reserve', [ReservationController::class, 'reserve']);
     Route::POST('/trips/{trip}/deleteReservation', [ReservationController::class, 'destroy']);
+    Route::POST('/trips/{trip}/editTrip', [TripsController::class, 'edit']);
 });

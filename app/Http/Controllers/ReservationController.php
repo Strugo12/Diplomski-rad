@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 class ReservationController extends Controller
 {
     public function reserve(Request $request, Trips $trip){
+        if(auth()->user()->role=="guide" || auth()->user()->role=="leader"){
+            return response([ 'message' => "This action is not allowed to you"]);
+        }
         $fields = $request->validate([
             'seats' => 'required|max:8',
           ]);
