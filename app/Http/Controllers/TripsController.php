@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\Reservation;
 use App\Models\Trips;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -26,11 +28,12 @@ class TripsController extends Controller
     }
 
     public function addTrip(Request $request){
+
         if(auth()->user()->role=="guest"){
-            return response(['message' =>'This action is not allowed to guests']);
+            return response(['message' =>'This action is not allowed to guests'], 403);
         }
         else if(auth()->user()->role=="guide"){
-            return response(['message' => 'This action is not allowed to guides']);
+            return response(['message' => 'This action is not allowed to guides'], 403);
         }
         else if(auth()->user()->role=="leader"){
         $fields = $request->validate([
@@ -57,7 +60,6 @@ class TripsController extends Controller
             if($flag==0){
                 return response([ 'message' => "Wrong guide"]);
             }
-
           $trip = Trips::create([
             'title' => $fields['title'],
             'destination' => $fields['destination'],
@@ -76,11 +78,17 @@ class TripsController extends Controller
     }
 
     public function destroy(Trips $trip){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"], 404);
+        }
         $trip->delete();
         return response([ 'message' => "Trip $trip->title is deleted!"]);
      }
 
     public function detail(Trips $trip){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"]. 404);
+        }
         if(auth()->user()->role=="guide"){
             $passengers=$trip->seats-$trip->freeseats;
             return response([ 'trip' => $trip, 'passengers'=> $passengers]);
@@ -91,8 +99,11 @@ class TripsController extends Controller
     }
 
     public function edit(Trips $trip, Request $request){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"]. 404);
+        }
         if(auth()->user()->role!="leader"){
-            return response([ 'message' => 'This can only be done by leaders']);
+            return response([ 'message' => 'This can only be done by leaders'], 403);
         }
         $fields = $request->validate([
             'title' => 'required|unique:trips',
@@ -133,6 +144,7 @@ class TripsController extends Controller
           $trip->save();
           return response([ 'message' => "Successfully changed $trip->title"]);
     }
+
 
 
 }

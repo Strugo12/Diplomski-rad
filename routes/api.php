@@ -26,6 +26,9 @@ Route::middleware('auth:api')->group(function (){
     Route::GET('/trips/{trip}', [TripsController::class, 'detail']);
     Route::DELETE('/trips/{trip}/deleteTrip', [TripsController::class, 'destroy']);
     Route::POST('/trips/{trip}/reserve', [ReservationController::class, 'reserve']);
+    Route::GET('/trips/{trip}/reservations', [ReservationController::class, 'reservations']);
     Route::POST('/trips/{trip}/deleteReservation', [ReservationController::class, 'destroy']);
     Route::POST('/trips/{trip}/editTrip', [TripsController::class, 'edit']);
+    Route::POST('/trips/{trip}/editReservation', [ReservationController::class, 'editReservation']);
+    Route::POST('/trips/{trip}/LeaderDeleteReservation', [ReservationController::class, 'deleteReservation']);
 });

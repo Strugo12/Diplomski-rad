@@ -9,8 +9,11 @@ use Illuminate\Http\Request;
 class ReservationController extends Controller
 {
     public function reserve(Request $request, Trips $trip){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"]. 404);
+        }
         if(auth()->user()->role=="guide" || auth()->user()->role=="leader"){
-            return response([ 'message' => "This action is not allowed to you"]);
+            return response([ 'message' => "This action is not allowed to you"], 403);
         }
         $fields = $request->validate([
             'seats' => 'required|max:8',
@@ -46,7 +49,7 @@ class ReservationController extends Controller
 
     public function destroy(Trips $trip){
         if($trip=='[]'){
-            return response([ 'message' => "Trip does not exist"]);
+            return response([ 'message' => "Trip does not exist"]. 404);
         }
         $flag=0;
         $reservations=Reservation::all();
@@ -63,5 +66,86 @@ class ReservationController extends Controller
         $trip->save();
         $reservation->delete();
         return response([ 'message' => "You have successfully deleted your reservation"]);
+    }
+
+    public function reservations(Trips $trip){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"], 404);
+        }
+        if(auth()->user()->role=="guide" || auth()->user()->role=="guest"){
+            return response([ 'message' => "This action is not allowed to you"], 403);
+        }
+        $reservations=Reservation::all();
+        foreach($reservations as $reservation){
+            if($trip->id==$reservation->trip_id){
+                $reservationUser[]=$reservation->user_id;
+                $reservationSeats[]=$reservation->occupiedSeats;
+            }
+        }
+        return response([ 'ReservationUser' =>  $reservationUser,'ReservationSeats' =>  $reservationSeats ]);
+    }
+
+    public function deleteReservation(Trips $trip, Request $request){
+        if($trip=='[]'){
+            return response([ 'message' => "Trip does not exist"], 404);
+        }
+        if(auth()->user()->role=="guide" || auth()->user()->role=="guest"){
+            return response([ 'message' => "This action is not allowed to you"], 403);
+        }
+        $user_id=$request->user_id;
+        $reservations=Reservation::all();
+        if($reservations=='[]'){
+            return response([ 'message' => "No reservations available"], 404);
+        }
+        foreach($reservations as $reservation){
+            if($reservation->user_id==$user_id && $reservation->trip_id==$trip->id ){
+                break;
+            }
+        }
+        if($reservation=='[]'){
+            return response([ 'message' => "No reservation available"], 404);
+        }
+        $trip->freeseats= $trip->freeseats+ $reservation->occupiedSeats;
+        $trip->save();
+        $reservation->delete();
+        return response([ 'message' => "Successfully deleted reservation for $reservation->occupiedSeats seats"]);
+    }
+    public function editReservation(Trips $trip, Request $request){
+        if($trip=='[]'){
+            return response([ 'message' => "No trip available"], 404);
+        }
+        if(auth()->user()->role=="guide" || auth()->user()->role=="guest"){
+            return response([ 'message' => "This action is not allowed to you"], 403);
+        }
+        $user_id=$request->user_id;
+        $seats=$request->seats;
+        $reservations=Reservation::all();
+        if($reservations=='[]'){
+            return response([ 'message' => "No reservations available"], 404);
+        }
+        foreach($reservations as $reservation){
+            if($reservation->user_id==$user_id && $reservation->trip_id==$trip->id){
+                break;
+            }
+        }
+        if($reservation=='[]'){
+            return response([ 'message' => "No reservation available"], 404);
+        }
+        if($seats>$reservation->occupiedSeats){
+            $newSeats=$seats-$reservation->occupiedSeats;
+            if($trip->freeseats<$newSeats){
+                return response([ 'message' => "Only $trip->freeseats is available and the user has already reserved $reservation->occupiedSeats seats "], 404);
+            }
+            $trip->freeseats= $trip->freeseats- $newSeats;
+        }
+        else if($seats<$reservation->occupiedSeats){
+            $newSeats=$reservation->occupiedSeats-$seats;
+            $trip->freeseats= $trip->freeseats+ $newSeats;
+        }
+        $trip->save();
+        $reservation->occupiedSeats=$seats;
+        $reservation->save();
+
+        return response([ 'message' => "Successfully edited reservation for $trip->title"]);
     }
 }

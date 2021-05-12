@@ -14,6 +14,7 @@ class Trips extends Model
         'destination',
         'duration',
         'date',
+        'time',
         'guide',
         'image',
         'description',

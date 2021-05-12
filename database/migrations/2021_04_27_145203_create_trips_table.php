@@ -19,6 +19,7 @@ class CreateTripsTable extends Migration
             $table->text('destination');
             $table->smallInteger('duration');
             $table->text('date');
+            $table->text('time');
             $table->text('image');
             $table->text('description');
             $table->foreignId('guide')->constrained()->onDelete('cascade');
