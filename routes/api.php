@@ -17,6 +17,8 @@ use App\Http\Controllers\ReservationController;
 */
 Route::POST('/register', [AuthController::class, 'register']);
 Route::POST('/login', [AuthController::class, 'login']);
+Route::POST('/forgotPassword', [AuthController::class, 'forgotPassword']);
+Route::POST('/changePassword', [AuthController::class, 'changePassword']);
 
 Route::middleware('auth:api')->group(function (){
     Route::GET('/user', [AuthController::class, 'details']);

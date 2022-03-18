@@ -16,8 +16,11 @@ class ReservationController extends Controller
             return response([ 'message' => "This action is not allowed to you"], 403);
         }
         $fields = $request->validate([
-            'seats' => 'required|max:8',
+            'seats' => 'required|max::8',
           ]);
+          if($fields['seats']>8){
+            return response([ 'message' => "You can reserve maximum 8 seats"], 400);
+          }
         $reservations=Reservation::all();
         $flag=0;
         foreach($reservations as $reservation){
@@ -51,6 +54,9 @@ class ReservationController extends Controller
         if($trip=='[]'){
             return response([ 'message' => "Trip does not exist"]. 404);
         }
+        if(auth()->user()->role!="leader"){
+            return response([ 'message' => 'This can only be done by leaders'], 403);
+        }
         $flag=0;
         $reservations=Reservation::all();
         foreach($reservations as $reservation){
@@ -76,6 +82,11 @@ class ReservationController extends Controller
             return response([ 'message' => "This action is not allowed to you"], 403);
         }
         $reservations=Reservation::all();
+       
+
+        if($reservations==null){
+            return response([ 'message' => "There are no reservation available"], 200);
+        }
         foreach($reservations as $reservation){
             if($trip->id==$reservation->trip_id){
                 $reservationUser[]=$reservation->user_id;

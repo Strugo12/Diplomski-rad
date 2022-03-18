@@ -46,6 +46,7 @@ class TripsController extends Controller
             'description'=> 'required|string',
             'price'=> 'required|integer',
             'seats'=> 'required|integer',
+            'time'=>'required',
             'remark'=> 'required|string',
           ]);
 
@@ -71,6 +72,7 @@ class TripsController extends Controller
             'price' => $fields['price'],
             'seats' => $fields['seats'],
             'freeseats' => $fields['seats'],
+            'time'=>  $fields['time'],
             'remark' => $fields['remark'],
             ]);
         return response([ 'trip' => $trip]);
@@ -78,19 +80,38 @@ class TripsController extends Controller
     }
 
     public function destroy(Trips $trip){
+        if(auth()->user()->role=="guide"){
+            return response(['message' => 'This action is not allowed to guides'], 403);
+        }
         if($trip=='[]'){
             return response([ 'message' => "Trip does not exist"], 404);
+        }
+        $reservations=Reservation::all();
+        foreach($reservations as $reservation){
+            if( $reservation->trip_id==$trip->id ){
+               $reservation->delete();
+            }
         }
         $trip->delete();
         return response([ 'message' => "Trip $trip->title is deleted!"]);
      }
 
     public function detail(Trips $trip){
-        if($trip=='[]'){
-            return response([ 'message' => "Trip does not exist"]. 404);
+        if($trip=="[]"){
+            return response([ 'message' => "Trip does not exist"], 404);
         }
-        if(auth()->user()->role=="guide"){
+        if(auth()->user()->role!="guest"){
+            $reservations=Reservation::all();
             $passengers=$trip->seats-$trip->freeseats;
+            if($reservations->count()>0){
+                foreach($reservations as $reservation){
+                    if($reservation->trip_id==$trip->id){
+                        $list[]=$reservation;
+                    }
+                }
+                return response([ 'trip' => $trip, 'passengers'=> $passengers, 'list'=>$list]);
+            }
+             
             return response([ 'trip' => $trip, 'passengers'=> $passengers]);
         }
         else{
@@ -115,6 +136,7 @@ class TripsController extends Controller
             'description'=> 'required|string',
             'price'=> 'required|integer',
             'seats'=> 'required|integer',
+            'time' => 'string',
             'remark'=> 'required|string',
           ]);
           $passengers=$trip->seats-$trip->freeseats;
@@ -141,6 +163,7 @@ class TripsController extends Controller
           $trip->price=$fields['price'];
           $trip->seats=$fields['seats'];
           $trip->remark=$fields['remark'];
+          $trip->time=$fields['time'];
           $trip->save();
           return response([ 'message' => "Successfully changed $trip->title"]);
     }

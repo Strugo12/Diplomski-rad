@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ChangePassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use phpDocumentor\Reflection\Types\Null_;
 
 class AuthController extends Controller
@@ -16,7 +18,7 @@ class AuthController extends Controller
           'name' => 'required|max:55',
           'email' => 'email|required|unique:users',
           'password' => 'required|confirmed',
-          'servicePassword'=> 'string',
+          'servicePassword'=> 'max:55',
         ]);
 
         $fields['password'] = bcrypt($request->password);
@@ -49,8 +51,35 @@ class AuthController extends Controller
         $user->save();
         return response([ 'user' => $user, 'token' => $token]);
       }
+      public function changePassword(Request $request) {
+        $fields = $request->validate([
+            'code' => 'required|string',
+            'password'=> 'required|string',
+            'repeatPassword'=> 'required|string'
+        ]);
+        if($fields['password']!= $fields['repeatPassword']){
+            return response([ 'message' => "Passwords must match"]);
+        }
+        $fields['password'] = bcrypt($request->password);
+        $user=User::where('remember_token',$fields['code'] )->firstOrFail();
+        $user->password=$fields['password'];
+        $user->remember_token=null;
+        $user->save();
+        return response([ 'message' => "Passwords changed"]);
+      }
 
+      public function forgotPassword(Request $request) {
+        $fields = $request->validate([
+            'email' => 'required|string',
+        ]);
+        $user=User::where('email',$fields['email'] )->firstOrFail();;
+        $details=mt_rand(1000, 9999);
+        $user->remember_token=$details;
+        $user->save();
+        Mail::to($fields['email'])->send(new ChangePassword($details));
+        return response(['message' => $details]);
 
+      }
       public function login(Request $request) {
         $fields = $request->validate([
             'email' => 'required|string',
