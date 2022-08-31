@@ -17,7 +17,8 @@ class CreateReservationsTable extends Migration
             $table->id();
             $table->foreignId('trip_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->smallInteger('occupiedSeats');
+            $table->timestamps();
+            $table->smallInteger('occupied_seats');
         });
     }
 

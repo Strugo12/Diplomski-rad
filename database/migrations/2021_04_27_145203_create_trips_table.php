@@ -17,16 +17,16 @@ class CreateTripsTable extends Migration
             $table->id();
             $table->text('title');
             $table->text('destination');
-            $table->smallInteger('duration');
-            $table->text('date');
-            $table->text('time');
-            $table->text('image');
+            $table->smallInteger('duration_days');
+            $table->date('date');
+            $table->time('time');
+            $table->text('image_url');
             $table->text('description');
-            $table->foreignId('guide')->constrained()->onDelete('cascade');
+            $table->foreignId('guide')->constrained('users')->onDelete('cascade');
             $table->timestamps();
             $table->smallInteger('price');
             $table->smallInteger('seats');
-            $table->smallInteger('freeseats');
+            $table->smallInteger('free_seats');
             $table->text('remark');
         });
     }

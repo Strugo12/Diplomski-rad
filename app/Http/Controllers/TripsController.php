@@ -6,10 +6,11 @@ use App\Models\Reservation;
 use App\Models\Trips;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class TripsController extends Controller
 {
-    public function index(){
+    public function getAll(){
         $trips=Trips::all();
         if($trips=="[]"){
             return response(['message' => 'No trips available']);
@@ -27,7 +28,7 @@ class TripsController extends Controller
         }
     }
 
-    public function addTrip(Request $request){
+    public function post(Request $request){
 
         if(auth()->user()->role=="guest"){
             return response(['message' =>'This action is not allowed to guests'], 403);
@@ -39,14 +40,14 @@ class TripsController extends Controller
         $fields = $request->validate([
             'title' => 'required|unique:trips',
             'destination' => 'required',
-            'duration' => 'required',
-            'date'=> 'required|date',
+            'durationDays' => 'required',
+            'date'=> 'date',
             'guide'=> 'required',
-            'image'=> 'required',
+            'imageUrl'=> 'required',
             'description'=> 'required|string',
             'price'=> 'required|integer',
             'seats'=> 'required|integer',
-            'time'=>'required',
+            'time'=>'required|date_format:H:i',
             'remark'=> 'required|string',
           ]);
 
@@ -64,14 +65,14 @@ class TripsController extends Controller
           $trip = Trips::create([
             'title' => $fields['title'],
             'destination' => $fields['destination'],
-            'duration' => $fields['duration'],
+            'duration_days' => $fields['durationDays'],
             'date' => $fields['date'],
             'guide' => $fields['guide'],
-            'image' => $fields['image'],
+            'image_url' => $fields['imageUrl'],
             'description' => $fields['description'],
             'price' => $fields['price'],
             'seats' => $fields['seats'],
-            'freeseats' => $fields['seats'],
+            'free_seats' => $fields['seats'],
             'time'=>  $fields['time'],
             'remark' => $fields['remark'],
             ]);
@@ -79,12 +80,13 @@ class TripsController extends Controller
         }
     }
 
-    public function destroy(Trips $trip){
+    public function delete($id){
+        $trip=Trips::firstWhere('id',$id);
+        if(!$trip){
+            return response([ 'message' => "Trip does not exist"], 404);
+        }
         if(auth()->user()->role=="guide"){
             return response(['message' => 'This action is not allowed to guides'], 403);
-        }
-        if($trip=='[]'){
-            return response([ 'message' => "Trip does not exist"], 404);
         }
         $reservations=Reservation::all();
         foreach($reservations as $reservation){
@@ -96,13 +98,14 @@ class TripsController extends Controller
         return response([ 'message' => "Trip $trip->title is deleted!"]);
      }
 
-    public function detail(Trips $trip){
-        if($trip=="[]"){
+    public function getById($id){
+        $trip=Trips::firstWhere('id',$id);
+        if(!$trip){
             return response([ 'message' => "Trip does not exist"], 404);
         }
         if(auth()->user()->role!="guest"){
             $reservations=Reservation::all();
-            $passengers=$trip->seats-$trip->freeseats;
+            $passengers=$trip->seats-$trip->free_seats;
             if($reservations->count()>0){
                 foreach($reservations as $reservation){
                     if($reservation->trip_id==$trip->id){
@@ -111,7 +114,7 @@ class TripsController extends Controller
                 }
                 return response([ 'trip' => $trip, 'passengers'=> $passengers, 'list'=>$list]);
             }
-             
+
             return response([ 'trip' => $trip, 'passengers'=> $passengers]);
         }
         else{
@@ -119,30 +122,42 @@ class TripsController extends Controller
         }
     }
 
-    public function edit(Trips $trip, Request $request){
-        if($trip=='[]'){
-            return response([ 'message' => "Trip does not exist"]. 404);
+    public function put($id, Request $request){
+
+        $trip=Trips::firstWhere('id',$id);
+        if(!$trip){
+            return response([ 'message' => "Trip does not exist"], 404);
         }
+
         if(auth()->user()->role!="leader"){
             return response([ 'message' => 'This can only be done by leaders'], 403);
         }
         $fields = $request->validate([
-            'title' => 'required|unique:trips',
+            'title' => 'required',
             'destination' => 'required',
-            'duration' => 'required',
+            'durationDays' => 'required',
             'date'=> 'required|date',
             'guide'=> 'required',
-            'image'=> 'required',
+            'imageUrl'=> 'required',
             'description'=> 'required|string',
             'price'=> 'required|integer',
             'seats'=> 'required|integer',
-            'time' => 'string',
+            'time'=>'required|date_format:H:i',
             'remark'=> 'required|string',
           ]);
-          $passengers=$trip->seats-$trip->freeseats;
+
+
+          $tripTitle=Trips::firstWhere('title',$fields['title']);
+          if($tripTitle && $tripTitle->id!==(int)$id){
+              return response([ 'message' => "Trip title already exists"], 409);
+          }
+
+
+          $passengers=$trip->seats-$trip->free_seats;
           if($passengers>$fields['seats']){
             return response([ 'message' => "$passengers is occupied and your max number of seats is $request->seats"]);
           }
+          $seatsDifference= $fields['seats']-$trip->seats;
           $flag=0;
             $users=User::all();
             foreach($users as $user){
@@ -155,17 +170,18 @@ class TripsController extends Controller
             }
           $trip->title=$fields['title'];
           $trip->destination=$fields['destination'];
-          $trip->duration=$fields['duration'];
+          $trip->duration_days=$fields['durationDays'];
           $trip->date=$fields['date'];
           $trip->guide=$fields['guide'];
-          $trip->image=$fields['image'];
+          $trip->image_url=$fields['imageUrl'];
           $trip->description=$fields['description'];
           $trip->price=$fields['price'];
           $trip->seats=$fields['seats'];
           $trip->remark=$fields['remark'];
           $trip->time=$fields['time'];
+          $trip->free_seats=$trip->free_seats+ $seatsDifference;
           $trip->save();
-          return response([ 'message' => "Successfully changed $trip->title"]);
+          return response($trip);
     }
 
 

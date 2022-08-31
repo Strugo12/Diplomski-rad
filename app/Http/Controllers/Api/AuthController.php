@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\ChangePassword;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
-use phpDocumentor\Reflection\Types\Null_;
 
 class AuthController extends Controller
 {
@@ -49,8 +47,10 @@ class AuthController extends Controller
         $token = $user->createToken('token')->accessToken;
         $user->api_token=$token;
         $user->save();
+        $user->offsetUnset('api_token');
         return response([ 'user' => $user, 'token' => $token]);
       }
+
       public function changePassword(Request $request) {
         $fields = $request->validate([
             'code' => 'required|string',
@@ -60,24 +60,30 @@ class AuthController extends Controller
         if($fields['password']!= $fields['repeatPassword']){
             return response([ 'message' => "Passwords must match"]);
         }
-        $fields['password'] = bcrypt($request->password);
-        $user=User::where('remember_token',$fields['code'] )->firstOrFail();
-        $user->password=$fields['password'];
+        $user=User::where('remember_token',$fields['code'] )->first();
+        if(!$user){
+            return response(['message' => 'Wrong code']);
+        }
+        $user->password= bcrypt($fields['password']);
         $user->remember_token=null;
         $user->save();
-        return response([ 'message' => "Passwords changed"]);
+        $user->offsetUnset('api_token');
+        return response([ 'message' =>"Password successfully changed"]);
       }
 
       public function forgotPassword(Request $request) {
         $fields = $request->validate([
             'email' => 'required|string',
         ]);
-        $user=User::where('email',$fields['email'] )->firstOrFail();;
-        $details=mt_rand(1000, 9999);
-        $user->remember_token=$details;
+        $user=User::where('email',$fields['email'] )->first();
+        if (!$user) {
+            return response(['message' => 'Wrong email adress!']);
+          }
+        $code=mt_rand(1000, 9999);
+        $user->remember_token=$code;
         $user->save();
-        Mail::to($fields['email'])->send(new ChangePassword($details));
-        return response(['message' => $details]);
+        Mail::to($fields['email'])->send(new ChangePassword($code));
+        return response(['code' => $code]);
 
       }
       public function login(Request $request) {
@@ -92,6 +98,7 @@ class AuthController extends Controller
           $user=auth()->user();
           $user->api_token=$token;
           $user->save();
+          $user->offsetUnset('api_token');
         return response(['user' => auth()->user(), 'token' => $token]);
       }
 
@@ -105,6 +112,10 @@ class AuthController extends Controller
     }
 
     public function details(){
-        return response()->json(['user' => auth()->user()], 200);
+        $user= auth()->user();
+        if(!$user){
+            return response(['message' => 'Not authenticated']);
+        }
+        return response(['user' => $user]);
     }
 }

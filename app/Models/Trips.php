@@ -12,15 +12,15 @@ class Trips extends Model
     protected $fillable = [
         'title',
         'destination',
-        'duration',
+        'duration_days',
         'date',
         'time',
         'guide',
-        'image',
+        'image_url',
         'description',
         'price',
         'seats',
-        'freeseats',
+        'free_seats',
         'remark',
     ];
 }
